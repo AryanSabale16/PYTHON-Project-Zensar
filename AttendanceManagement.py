@@ -7,11 +7,11 @@ import mysql.connector
 # Database connection function
 def get_db_connection():
     return mysql.connector.connect(
-        host="localhost",           # Your database host
-        port=3307,                  # Your MySQL port
-        user="root",                # Your MySQL username
-        password="Root",            # Your MySQL password
-        database="avcoe"            # Your database name
+        host="localhost",          
+        port=3307,                  
+        user="root",                
+        password="Root",            
+        database="avcoe"            
     )
 
 # Custom JSON Encoder for handling special data types
@@ -28,7 +28,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)  # Use dictionary=True to fetch rows as dictionaries
+            cursor = conn.cursor(dictionary=True)  
             
             if self.path.startswith("/students/"):
                 student_id = self.path.split("/")[-1]
