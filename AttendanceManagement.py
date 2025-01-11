@@ -30,29 +30,42 @@ class RequestHandler(BaseHTTPRequestHandler):
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)  
             
+            # Handle specific GET routes
             if self.path.startswith("/students/"):
                 student_id = self.path.split("/")[-1]
                 cursor.execute("SELECT * FROM Students WHERE StudentID = %s", (student_id,))
                 result = cursor.fetchone()
+            elif self.path.startswith("/students"):
+                cursor.execute("SELECT * FROM Students")
+                result = cursor.fetchall()
             elif self.path.startswith("/courses/"):
                 course_id = self.path.split("/")[-1]
                 cursor.execute("SELECT * FROM Courses WHERE CourseID = %s", (course_id,))
                 result = cursor.fetchone()
+            elif self.path.startswith("/courses"):
+                cursor.execute("SELECT * FROM Courses")
+                result = cursor.fetchall()
             elif self.path.startswith("/attendance/"):
                 course_id = self.path.split("/")[-1]
                 cursor.execute("SELECT * FROM Attendance WHERE CourseID = %s", (course_id,))
                 result = cursor.fetchall()
-            else:
-                cursor.execute("SELECT * FROM Students")
+            elif self.path.startswith("/attendance"):
+                cursor.execute("SELECT * FROM Attendance")
                 result = cursor.fetchall()
+            else:
+                # If no valid route is found, return a 404 error
+                self.send_error(404, "Endpoint not found")
+                return
 
-            if result is None:
+            # If no results are found, return a 404 response
+            if not result:
                 response_body = json.dumps({"error": "Record not found"})
                 self.send_response(404)  # Not Found
             else:
                 response_body = json.dumps(result, cls=CustomJSONEncoder)
                 self.send_response(200)  # OK
             
+            # Send the response
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(response_body.encode())
@@ -85,6 +98,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     "INSERT INTO Students (FirstName, LastName, Email, PhoneNumber) VALUES (%s, %s, %s, %s)",
                     (post_data['FirstName'], post_data['LastName'], post_data['Email'], post_data['PhoneNumber'])
                 )
+                message = "Student record added successfully."
 
             elif self.path == "/courses":
                 required_fields = ["CourseName", "Instructor"]
@@ -99,6 +113,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     "INSERT INTO Courses (CourseName, Instructor) VALUES (%s, %s)",
                     (post_data['CourseName'], post_data['Instructor'])
                 )
+                message = "Course record added successfully."
 
             elif self.path == "/attendance":
                 required_fields = ["StudentID", "CourseID", "AttendanceDate", "Status"]
@@ -113,10 +128,14 @@ class RequestHandler(BaseHTTPRequestHandler):
                     "INSERT INTO Attendance (StudentID, CourseID, AttendanceDate, Status) VALUES (%s, %s, %s, %s)",
                     (post_data['StudentID'], post_data['CourseID'], post_data['AttendanceDate'], post_data['Status'])
                 )
+                message = "Attendance record added successfully."
 
             conn.commit()
+            response_body = json.dumps({"message": message})
             self.send_response(201)  # Created
+            self.send_header("Content-type", "application/json")
             self.end_headers()
+            self.wfile.write(response_body.encode())
 
         except mysql.connector.Error as db_error:
             self.send_error(500, f"Database error: {str(db_error)}")
